@@ -1,0 +1,25 @@
+{
+  "manifest_version": 2,
+  "name": "HubSpot Email Searcher",
+  "version": "1.1",
+  "description": "Opens email links directly in HubSpot search history.",
+  "icons": {
+    "48": "icon.png"
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "mailto",
+      "name": "HubSpot History",
+      "uriTemplate": "/redirect.html?url=%s"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "hubspot-mailto@yourdomain.com",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  }
+}
