@@ -34,9 +34,17 @@ Order Printer uses Shopify App Bridge - can't open directly via URL. Must trigge
 ### Context-aware hiding
 "order printer" appears in both Print section (keep) and More Actions (hide). Solution: Match exact phrase "print with order printer" / "drucken mit order printer" instead of just "order printer".
 
+### SPA navigation handling
+Content scripts only run on initial page load, not on Shopify's client-side navigation. Solution: Added URL change detection via MutationObserver. When URL changes, reinitialize page-specific features. Track and disconnect old observers before creating new ones to prevent memory leaks. HubSpot handler runs once globally (event listener persists across navigations).
+
+### Publishing workflow
+Use `web-ext sign --channel=unlisted` for self-hosted extensions. Store API credentials in `~/.web-ext-config.mjs` (chmod 600). Produces Mozilla-signed `.xpi` without AMO publication. For auto-updates: add `update_url` to manifest pointing to JSON with version/download link.
+
 ## Key Learnings
 
 - `MutationObserver` essential for SPA menus that load dynamically
+- Content scripts don't re-run on SPA navigation - must detect URL changes and reinitialize
 - Cross-origin restrictions prevent iframe from accessing parent URL params - must extract order ID from own context
 - `target="_top"` breaks out of iframe when navigating
 - Case-insensitive, multi-language pattern matching: normalize text to lowercase, check multiple variants
+- Menu items only exist in DOM when menu is open - hiding happens on-demand, may briefly flash
