@@ -1,18 +1,36 @@
-// Load settings and initialize features
-browser.storage.sync.get({
+// Store settings globally so we can access them on URL changes
+let globalSettings = {
   enableHubspot: true,
   hideOrderPrinter: true,
   redirectLieferschein: true
-}).then((settings) => {
+};
 
-  // Feature 1: HubSpot Email Handler
-  if (settings.enableHubspot) {
+// Track observers so we can clean them up on navigation
+let orderPrinterObserver = null;
+let lieferscheinObserver = null;
+let hubspotHandlerInitialized = false;
+
+// Initialize all features based on current page
+function initializeFeatures() {
+  // Feature 1: HubSpot Email Handler (runs once globally, works everywhere)
+  if (globalSettings.enableHubspot && !hubspotHandlerInitialized) {
     initHubspotEmailHandler();
+    hubspotHandlerInitialized = true;
+  }
+
+  // Clean up old observers before creating new ones
+  if (orderPrinterObserver) {
+    orderPrinterObserver.disconnect();
+    orderPrinterObserver = null;
+  }
+  if (lieferscheinObserver) {
+    lieferscheinObserver.disconnect();
+    lieferscheinObserver = null;
   }
 
   // Feature 2: Hide Order Printer (only on order pages)
-  if (settings.hideOrderPrinter && isOrderPage()) {
-    initOrderPrinterHider();
+  if (globalSettings.hideOrderPrinter && isOrderPage()) {
+    orderPrinterObserver = initOrderPrinterHider();
   }
 
   // Feature 2b: Auto-open Order Printer overlay if hash is present
@@ -21,9 +39,35 @@ browser.storage.sync.get({
   }
 
   // Feature 3: Redirect Lieferschein links (only on DPD fulfillment pages)
-  if (settings.redirectLieferschein && isDpdFulfillmentPage()) {
-    initLieferscheinRedirect();
+  if (globalSettings.redirectLieferschein && isDpdFulfillmentPage()) {
+    lieferscheinObserver = initLieferscheinRedirect();
   }
+}
+
+// Load settings and initialize
+browser.storage.sync.get({
+  enableHubspot: true,
+  hideOrderPrinter: true,
+  redirectLieferschein: true
+}).then((settings) => {
+  globalSettings = settings;
+  initializeFeatures();
+
+  // Listen for Shopify SPA navigation (URL changes without page reload)
+  let lastUrl = window.location.href;
+  const urlObserver = new MutationObserver(() => {
+    if (window.location.href !== lastUrl) {
+      lastUrl = window.location.href;
+      console.log('[Shopify Extension] URL changed, reinitializing features');
+      initializeFeatures();
+    }
+  });
+
+  // Observe changes to detect SPA navigation
+  urlObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
 });
 
 // Check if current page is an order page
@@ -106,6 +150,8 @@ function initOrderPrinterHider() {
     childList: true,
     subtree: true
   });
+
+  return observer; // Return observer so we can clean it up later
 }
 
 // Initialize Lieferschein link redirect
@@ -172,6 +218,8 @@ function initLieferscheinRedirect() {
     childList: true,
     subtree: true
   });
+
+  return observer; // Return observer so we can clean it up later
 }
 
 // Auto-open Order Printer overlay on order page
