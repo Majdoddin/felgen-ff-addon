@@ -9,7 +9,22 @@ async function signalUpdateCheck() {
   try {
     // Fetch updates.json with cache-buster
     const response = await fetch(`${MANIFEST_URL}?nocache=${Date.now()}`);
+
+    // Check if fetch was successful
+    if (!response.ok) {
+      // File doesn't exist yet or server error - silently skip
+      return;
+    }
+
+    // Parse JSON safely
     const data = await response.json();
+
+    // Validate data structure exists
+    if (!data || !data.addons || !data.addons[ADDON_ID] ||
+        !data.addons[ADDON_ID].updates || !data.addons[ADDON_ID].updates[0]) {
+      console.warn("Invalid updates.json structure");
+      return;
+    }
 
     // Get latest version from updates.json
     const latestVersion = data.addons[ADDON_ID].updates[0].version;
@@ -22,7 +37,8 @@ async function signalUpdateCheck() {
       console.log("Update check result:", result.status);
     }
   } catch (error) {
-    console.error("Update check failed:", error);
+    // Silently fail - don't spam console when updates.json doesn't exist
+    // Extension continues working normally
   }
 }
 
