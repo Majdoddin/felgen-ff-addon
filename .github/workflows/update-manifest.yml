@@ -31,7 +31,7 @@ jobs:
 
       - name: Update updates.json
         run: |
-          cat > updates.json << 'EOF'
+          cat > updates.json << EOF
           {
             "addons": {
               "shopify-hubspot-email@majdoddin.com": {
