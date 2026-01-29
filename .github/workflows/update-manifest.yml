@@ -1,0 +1,53 @@
+name: Update Extension Manifest
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get release information
+        id: release
+        run: |
+          # Extract version from tag (e.g., v1.4 -> 1.4)
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Find XPI file in release assets
+          XPI_URL=$(echo '${{ toJSON(github.event.release.assets) }}' | \
+            jq -r '.[] | select(.name | endswith(".xpi")) | .browser_download_url' | head -1)
+          echo "xpi_url=$XPI_URL" >> $GITHUB_OUTPUT
+
+      - name: Update updates.json
+        run: |
+          cat > updates.json << 'EOF'
+          {
+            "addons": {
+              "shopify-hubspot-email@majdoddin.com": {
+                "updates": [
+                  {
+                    "version": "${{ steps.release.outputs.version }}",
+                    "update_link": "${{ steps.release.outputs.xpi_url }}"
+                  }
+                ]
+              }
+            }
+          }
+          EOF
+
+      - name: Commit and push updates.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add updates.json
+          git commit -m "Update updates.json for version ${{ steps.release.outputs.version }}"
+          git push
