@@ -1,9 +1,8 @@
 const HUBSPOT_PORTAL_ID = "25621491"; //felgen
 
 // Auto-update configuration
-const MANIFEST_URL = "https://raw.githubusercontent.com/Majdoddin/felgen-ff-addon/master/updates.json";
+const UPDATE_URL = "https://raw.githubusercontent.com/Majdoddin/felgen-ff-addon/master/updates.json";
 const ADDON_ID = "shopify-hubspot-email@majdoddin.com";
-const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
 
 // Simple version comparison (assumes format like "1.6", "1.7")
 function compareVersions(v1, v2) {
@@ -20,60 +19,81 @@ function compareVersions(v1, v2) {
   return 0;
 }
 
-async function signalUpdateCheck() {
-  try {
-    // Fetch updates.json with cache-buster
-    const response = await fetch(`${MANIFEST_URL}?nocache=${Date.now()}`);
+// Setup alarm to check every 5 minutes
+browser.alarms.create("check-update", { periodInMinutes: 5 });
 
-    // Check if fetch was successful
+browser.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "check-update") {
+    checkVersion();
+  }
+});
+
+async function checkVersion() {
+  try {
+    // Cache-busting fetch
+    const response = await fetch(`${UPDATE_URL}?t=${Date.now()}`);
+
     if (!response.ok) {
       console.log(`Update check: updates.json not found (${response.status}). Waiting for first release.`);
       return;
     }
 
-    // Parse JSON safely
     const data = await response.json();
 
-    // Validate data structure exists
+    // Validate data structure
     if (!data || !data.addons || !data.addons[ADDON_ID] ||
         !data.addons[ADDON_ID].updates || !data.addons[ADDON_ID].updates[0]) {
       console.warn("Update check: Invalid updates.json structure");
       return;
     }
 
-    // Get latest version from updates.json
-    const latestVersion = data.addons[ADDON_ID].updates[0].version;
-    const currentVersion = browser.runtime.getManifest().version;
+    const latest = data.addons[ADDON_ID].updates[0].version;
+    const current = browser.runtime.getManifest().version;
 
-    // Compare versions
-    const comparison = compareVersions(latestVersion, currentVersion);
+    // Compare versions - only notify if remote is NEWER
+    const comparison = compareVersions(latest, current);
 
     if (comparison > 0) {
-      // Remote version is newer
-      console.log(`New version ${latestVersion} available. Current: ${currentVersion}`);
-      const result = await browser.runtime.requestUpdateCheck();
-      console.log("Update check result:", result.status);
+      console.log(`New version ${latest} available. Current: ${current}`);
+      showUpdateNotification(latest);
     } else if (comparison < 0) {
-      // Remote version is older
-      console.log(`Update check: Installed version ${currentVersion} is newer than remote ${latestVersion}`);
+      console.log(`Update check: Installed version ${current} is newer than remote ${latest}`);
     } else {
-      // Same version
-      console.log(`Update check: Already on latest version ${currentVersion}`);
+      console.log(`Update check: Already on latest version ${current}`);
     }
-  } catch (error) {
-    console.error("Update check failed:", error);
+  } catch (err) {
+    console.error("Update check failed:", err);
   }
 }
 
-// Auto-reload when update is downloaded
-browser.runtime.onUpdateAvailable.addListener(() => {
-  console.log("Update downloaded. Reloading extension...");
-  browser.runtime.reload();
+function showUpdateNotification(newVersion) {
+  browser.notifications.create("update-available", {
+    "type": "basic",
+    "iconUrl": browser.runtime.getURL("icon.png"),
+    "title": "Update Available",
+    "message": `Version ${newVersion} is ready. Click here to update.`
+  });
+}
+
+// Handle notification click to open addon management page
+browser.notifications.onClicked.addListener(async (id) => {
+  if (id === "update-available") {
+    const self = await browser.management.getSelf();
+    browser.tabs.create({ url: `about:addons` });
+    // Show a follow-up notification with instructions
+    setTimeout(() => {
+      browser.notifications.create("update-instructions", {
+        "type": "basic",
+        "iconUrl": browser.runtime.getURL("icon.png"),
+        "title": "How to Update",
+        "message": "Click the gear icon (⚙️) at top-right and select 'Check for Updates'"
+      });
+    }, 1000);
+  }
 });
 
-// Start update checks
-setInterval(signalUpdateCheck, CHECK_INTERVAL);
-signalUpdateCheck(); // Initial check on startup
+// Run check once on startup
+checkVersion();
 
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "openHubSpot" && request.email) {

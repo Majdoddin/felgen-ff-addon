@@ -8,7 +8,10 @@
   },
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "notifications",
+    "alarms",
+    "management"
   ],
   "content_scripts": [
     {
