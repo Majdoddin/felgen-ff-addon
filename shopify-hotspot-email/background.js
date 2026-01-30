@@ -67,11 +67,17 @@ async function checkVersion() {
 }
 
 function showUpdateNotification(newVersion) {
+  console.log(`Attempting to show notification for v${newVersion}`);
+
   browser.notifications.create("update-available", {
     "type": "basic",
     "iconUrl": browser.runtime.getURL("icon.png"),
     "title": `Update Available: v${newVersion}`,
     "message": "To update:\n1. Open about:addons\n2. Click gear icon ⚙️\n3. Select 'Check for Updates'"
+  }).then((notificationId) => {
+    console.log(`Notification created successfully with ID: ${notificationId}`);
+  }).catch((error) => {
+    console.error(`Failed to create notification:`, error);
   });
 }
 

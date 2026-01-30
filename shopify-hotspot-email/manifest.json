@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Shopify to HubSpot Email",
-  "version": "1.21",
+  "version": "1.20",
   "description": "Opens HubSpot when clicking the Copy Email icon in Shopify.",
   "icons": {
     "48": "icon.png"
