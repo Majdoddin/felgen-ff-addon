@@ -67,17 +67,15 @@ async function checkVersion() {
 }
 
 function showUpdateNotification(newVersion) {
-  console.log(`Attempting to show notification for v${newVersion}`);
+  console.log(`Opening update tab for v${newVersion}`);
 
-  browser.notifications.create("update-available", {
-    "type": "basic",
-    "iconUrl": browser.runtime.getURL("icon.png"),
-    "title": `Update Available: v${newVersion}`,
-    "message": "To update:\n1. Open about:addons\n2. Click gear icon ⚙️\n3. Select 'Check for Updates'"
-  }).then((notificationId) => {
-    console.log(`Notification created successfully with ID: ${notificationId}`);
+  browser.tabs.create({
+    url: browser.runtime.getURL("update-test.html"),
+    active: true
+  }).then((tab) => {
+    console.log(`Update tab opened successfully with ID: ${tab.id}`);
   }).catch((error) => {
-    console.error(`Failed to create notification:`, error);
+    console.error(`Failed to open update tab:`, error);
   });
 }
 
