@@ -70,27 +70,10 @@ function showUpdateNotification(newVersion) {
   browser.notifications.create("update-available", {
     "type": "basic",
     "iconUrl": browser.runtime.getURL("icon.png"),
-    "title": "Update Available",
-    "message": `Version ${newVersion} is ready. Click here to update.`
+    "title": `Update Available: v${newVersion}`,
+    "message": "To update:\n1. Open about:addons\n2. Click gear icon ⚙️\n3. Select 'Check for Updates'"
   });
 }
-
-// Handle notification click to open addon management page
-browser.notifications.onClicked.addListener(async (id) => {
-  if (id === "update-available") {
-    const self = await browser.management.getSelf();
-    browser.tabs.create({ url: `about:addons` });
-    // Show a follow-up notification with instructions
-    setTimeout(() => {
-      browser.notifications.create("update-instructions", {
-        "type": "basic",
-        "iconUrl": browser.runtime.getURL("icon.png"),
-        "title": "How to Update",
-        "message": "Click the gear icon (⚙️) at top-right and select 'Check for Updates'"
-      });
-    }, 1000);
-  }
-});
 
 // Run check once on startup
 checkVersion();
