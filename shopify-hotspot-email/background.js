@@ -71,20 +71,9 @@ function showUpdateNotification(newVersion) {
     "type": "basic",
     "iconUrl": browser.runtime.getURL("icon.png"),
     "title": `Update Available: v${newVersion}`,
-    "message": "To update:\n1. Open about:addons\n2. Click gear icon ⚙️\n3. Select 'Check for Updates'",
-    "requireInteraction": true,
-    "buttons": [
-      { "title": "OK" }
-    ]
+    "message": "To update:\n1. Open about:addons\n2. Click gear icon ⚙️\n3. Select 'Check for Updates'"
   });
 }
-
-// Handle button click to dismiss notification
-browser.notifications.onButtonClicked.addListener((id, buttonIndex) => {
-  if (id === "update-available" && buttonIndex === 0) {
-    browser.notifications.clear(id);
-  }
-});
 
 // Run check on installation or update
 browser.runtime.onInstalled.addListener(() => {
