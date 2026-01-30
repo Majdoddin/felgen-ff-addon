@@ -19,8 +19,8 @@ function compareVersions(v1, v2) {
   return 0;
 }
 
-// Setup alarm to check every 5 minutes
-browser.alarms.create("check-update", { periodInMinutes: 5 });
+// Setup alarm to check every 3 minutes
+browser.alarms.create("check-update", { periodInMinutes: 3 });
 
 browser.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "check-update") {
@@ -71,9 +71,25 @@ function showUpdateNotification(newVersion) {
     "type": "basic",
     "iconUrl": browser.runtime.getURL("icon.png"),
     "title": `Update Available: v${newVersion}`,
-    "message": "To update:\n1. Open about:addons\n2. Click gear icon ⚙️\n3. Select 'Check for Updates'"
+    "message": "To update:\n1. Open about:addons\n2. Click gear icon ⚙️\n3. Select 'Check for Updates'",
+    "requireInteraction": true,
+    "buttons": [
+      { "title": "OK" }
+    ]
   });
 }
+
+// Handle button click to dismiss notification
+browser.notifications.onButtonClicked.addListener((id, buttonIndex) => {
+  if (id === "update-available" && buttonIndex === 0) {
+    browser.notifications.clear(id);
+  }
+});
+
+// Run check on installation or update
+browser.runtime.onInstalled.addListener(() => {
+  checkVersion();
+});
 
 // Run check once on startup
 checkVersion();
